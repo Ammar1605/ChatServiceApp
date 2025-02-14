@@ -1,1 +1,1 @@
-Chat service app fro communication between coworkers
+Chat service app for communication between coworkers
