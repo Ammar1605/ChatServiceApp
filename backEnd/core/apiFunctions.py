@@ -7,18 +7,14 @@ import json
 
 # Function for login of user
 # @param request: request object
-# @return: 0 if successful, 1 if unsuccessful
+# @return: OK if successful, invalid credentials if unsuccessful, method not allowed if method is not POST
 def userLogin(request):
     if request.method == 'POST':
         data = json.loads(request.body)
         email = data['email']
         username = User.objects.get(email=email).username
-        # username = 'aminacordic'
-        print(username)
         password = data['password']
-        print(password)
         user = authenticate(request, username=username, password=password)
-        print(user)
         if user is not None:
             login(request, user)
             return JsonResponse({'status': 'OK'})
@@ -26,23 +22,28 @@ def userLogin(request):
             return JsonResponse({'status': 'Invalid credentials'}, status=401)
     return JsonResponse({'status': 'Method not allowed'}, status=405)
 
+# Function for getting user details
+# @param request: request object
+# @return: user details if successful, method not allowed if method is not GET or if user is not logged in
 @login_required
 def getUserDetails(request):
     user = request.user
-    return JsonResponse({
-        'status': 'OK',
-        'user': {
-            'username': user.username,
-            'email': user.email,
-            'name': user.first_name,
-            'surname': user.last_name,
-            # Add any other user details you want to return
-        }
-    })
+    if user: 
+        return JsonResponse({
+            'status': 'OK',
+            'user': {
+                'username': user.username,
+                'email': user.email,
+                'name': user.first_name,
+                'surname': user.last_name
+            }
+        })
+    else:
+        return JsonResponse({'status': 'User not logged in'}, status=401)
 
 # Function for logout of user
 # @param request: request object
-# @return: 0 if successful, 1 if unsuccessful
+# @return: OK if successful, method not allowed if method is not POST or if user is not logged in
 def userLogout(request):
     if request.method == 'POST':
         logout(request)

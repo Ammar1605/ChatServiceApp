@@ -1,5 +1,5 @@
 from django.urls import path
-from . import views, apiFunctions
+from . import views, apiFunctions, chatFunctions
 
 urlpatterns = [
     path('getcsrf', views.getcsrf, name='csrf'),
@@ -7,4 +7,5 @@ urlpatterns = [
     path('login', apiFunctions.userLogin, name='Login'),
     path('checkLogin', apiFunctions.getUserDetails, name='Check Login'),
     path('logout', apiFunctions.userLogout, name='Logout'),
+    path('getPeopleList', chatFunctions.getPeopleList, name='Get People List'),
 ]

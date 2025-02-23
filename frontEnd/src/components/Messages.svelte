@@ -1,26 +1,32 @@
 <script>
 	import { onMount } from 'svelte';
 	import Cookies from 'js-cookie';
+	import { messages, connect, sendMessage } from '../stores/websocket.js';
+  	import { writable } from 'svelte/store';
 
 	let userDetails = null;
 	let loading = true;
-	let people = [
-		'Alice',
-		'Bob',
-		'Charlie'
-	];
+	let people = [];
 	let selectedPerson = people[0];
-	let messages = [
-		{ from: 'Alice', text: 'Hello!' },
-		{ from: 'Me', text: 'Hi, how are you?' }
-	];
+	//let messages = [];
 	let showPeopleList = true;
 	let searchQuery = '';
 	let csrftoken = '';
+
+	// Test data
+	let roomName = "testroom";
+	let inputMessage = "";
+	let socket;
 	
 	onMount(async () => {
 		await checkLogin();
 		csrftoken = Cookies.get('csrftoken');
+		await getPeopleList();
+		let openedChat = new URLSearchParams(window.location.search).get('person');
+		if (openedChat) {
+			selectPerson(openedChat);
+		}
+		socket = connect(roomName);
 		loading = false;
 	});
 	
@@ -34,6 +40,7 @@
 			userDetails = await response.json();
 		} else {
 			console.log('Failed to get user details');
+			window.href.location = 'http://chatservice.local/login';
 		}
 	}
 	
@@ -54,10 +61,36 @@
 		}
 	}
 
+	async function getPeopleList() {
+		const response = await fetch('http://chatservice.local/api/getPeopleList', {
+			method: 'POST',
+			credentials: 'include',
+			headers: {
+				'Content-Type': 'application/json',
+				'X-CSRFToken': csrftoken
+			},
+			body: JSON.stringify({'sender': userDetails.user.username})
+		});
+		const data = await response.json();
+		if (data.status === 'OK') {
+			people = data.peopleList;
+		} else {
+			alert('Failed to get people list');
+		}
+	}
+
 	const selectPerson = (person) => {
-		selectedPerson = person;
+		let tmp = people.filter(p => p.username === person);
+		selectedPerson = tmp[0].name + ' ' + tmp[0].surname;
 		// Load messages for the selected person
 	};
+
+	function handleSend() {
+		if (inputMessage.trim()) {
+			sendMessage(inputMessage);
+			inputMessage = "";
+		}
+	}
 	
 	const togglePeopleList = () => {
 		showPeopleList = !showPeopleList;
@@ -74,6 +107,7 @@
 	</div>
 {:else}
 	<div class="flex h-screen">
+		<!-- People list - Left part of screen -->
 		{#if showPeopleList}
 			<div class="w-1/4 overflow-y-auto bg-gray-200 p-1" style="max-height: 100vh;">
 				<div class="top-0 m-0 bg-gray-300 p-4">
@@ -101,15 +135,16 @@
 				<ul>
 					{#each people as person}
 						<li class="cursor-pointer">
-							<a href="?person={person}" on:click={() => selectPerson(person)}>
+							<a href="?person={person.username}" on:click={() => selectPerson(person.username)}>
 								<div class="border-1 m-2 rounded-md p-2">
-									{person}
+									{person.name} {person.surname}
 								</div>
 							</a>
 						</li>
 					{/each}
 				</ul>
 
+				<!-- My account -->
 				<div class="bg-amber-500 bottom-0 left-0 m-0 w-1/4 absolute">
 					<img src="favicon.png" alt="User avatar" class="w-12 h-12 rounded-full inline-block" />
 					<p class="text-center inline-flex">
@@ -123,7 +158,10 @@
 				</div>
 			</div>
 		{/if}
+
+		<!-- Messages - Right part of screen -->
 		<div class="flex flex-1 flex-col">
+			<!-- Header -->
 			<div class="flex items-center bg-gray-300 p-4">
 				<button
 					on:click={togglePeopleList}
@@ -143,6 +181,8 @@
 				</button>
 				<span>{selectedPerson}</span>
 			</div>
+
+			<!-- Messages -->
 			<div class="flex-1 overflow-y-auto p-4">
 				{#each messages as message}
 					<div class={message.from === 'Me' ? 'text-right' : 'text-left'}>
@@ -155,7 +195,12 @@
 					type="text"
 					placeholder="Type a message..."
 					class="w-full rounded border border-gray-300 p-2"
+					bind:value={inputMessage}
+					on:keydown={(e) => e.key === 'Enter' && handleSend()}
 				/>
+				<button on:click={handleSend} class="bg-blue-500 text-white p-2 rounded">
+					Send
+				</button>
 			</div>
 		</div>
 	</div>

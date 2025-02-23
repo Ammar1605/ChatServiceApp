@@ -5,9 +5,15 @@ import { defineConfig } from 'vite';
 export default defineConfig({
 	plugins: [sveltekit(), tailwindcss()],
     server: {
-        host: true,  // Allows access from network (0.0.0.0)
+        host: 'chatservice.local', // Use your custom domain for HMR
         strictPort: true,
-        port: 5173,  // Change if needed
-        allowedHosts: ['chatservice.local'], // Allow custom domain
-    }
+        port: 5173,
+        allowedHosts: ['chatservice.local'],
+        hmr: {
+            host: 'chatservice.local',
+            protocol: 'ws',
+            port: 5173,
+            // Note: Vite will still append a token. There isn’t a documented way to completely remove it.
+          },
+    },
 });
