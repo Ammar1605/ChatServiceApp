@@ -7,7 +7,8 @@
 	let userDetails = null;
 	let loading = true;
 	let people = [];
-	let selectedPerson = people[0];
+	let selectedPerson = '';
+	let selectedPersonUsername = '';
 	//let messages = [];
 	let showPeopleList = true;
 	let searchQuery = '';
@@ -82,12 +83,13 @@
 	const selectPerson = (person) => {
 		let tmp = people.filter(p => p.username === person);
 		selectedPerson = tmp[0].name + ' ' + tmp[0].surname;
+		selectedPersonUsername = person;
 		// Load messages for the selected person
 	};
 
 	function handleSend() {
 		if (inputMessage.trim()) {
-			sendMessage(inputMessage);
+			sendMessage(inputMessage, userDetails.user.username, selectedPersonUsername);
 			inputMessage = "";
 		}
 	}

@@ -18,8 +18,8 @@ export function connect(roomName) {
   return socket;
 }
 
-export function sendMessage(message) {
+export function sendMessage(message, sender, receiver) {
   if (socket.readyState === WebSocket.OPEN) {
-    socket.send(JSON.stringify({ message }));
+    socket.send(JSON.stringify({ message, sender, receiver }));
   }
 }
