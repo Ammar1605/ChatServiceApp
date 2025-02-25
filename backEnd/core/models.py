@@ -18,6 +18,7 @@ class Messages(models.Model):
     timestamp = models.DateTimeField(auto_now_add=True)
     room = models.ForeignKey(ChatRoom, on_delete=models.CASCADE, related_name='messages', default='')
     message = models.TextField()
+    file = models.CharField(null=True, blank=True, default='', max_length=255)
     sender = models.CharField(null=True, blank=True, default='', max_length=100)
     receiver = models.CharField(null=True, blank=True, default='', max_length=100)
     is_read = models.BooleanField(default=False)

@@ -1,9 +1,10 @@
 import json
+from django.contrib.auth.models import User
+from django.db.models import Q
 from django.http import JsonResponse
 from .models import Messages, ChatRoom
-from django.contrib.auth.models import User
 
-def getPeopleList(request):
+""" def getPeopleList(request):
     try:
         print('Here')
         sender = json.loads(request.body)['sender']
@@ -24,6 +25,27 @@ def getPeopleList(request):
 
         return JsonResponse({'status': 'OK', 'peopleList': list(people)})
     except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500) """
+
+def getPeopleList(request):
+    try:
+        current_user = json.loads(request.body)['sender']
+        qs_sender = Messages.objects.filter(sender=current_user).exclude(receiver='').values_list('receiver', flat=True).distinct()
+        qs_receiver = Messages.objects.filter(receiver=current_user).exclude(sender='').values_list('sender', flat=True).distinct()
+        partners = list(qs_sender.union(qs_receiver))
+        print(partners)
+        people = []
+        for person in partners:
+            print('person:', person)
+            tmp = User.objects.get(username=person)
+            people.append({
+                'username': tmp.username,
+                'email': tmp.email,
+                'name': tmp.first_name,
+                'surname': tmp.last_name
+            })
+        return JsonResponse({'status': 'OK', 'peopleList': list(people)})
+    except Exception as e:
         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
     
 def chat_history(request, room_name):
@@ -33,3 +55,12 @@ def chat_history(request, room_name):
         return JsonResponse(list(messages), safe=False)
     except ChatRoom.DoesNotExist:
         return JsonResponse([], safe=False)
+
+def getMessages(request):
+    try:
+        sender = json.loads(request.body)['sender']
+        receiver = json.loads(request.body)['receiver']
+        messages = Messages.objects.filter(Q(sender=sender, receiver=receiver) | Q(sender=receiver, receiver=sender)).values('sender', 'receiver', 'message', 'file', 'timestamp')
+        return JsonResponse(list(messages), safe=False)
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)

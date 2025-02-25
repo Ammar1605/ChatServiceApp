@@ -4,7 +4,6 @@ backEnd/core/__pycache__
 backEnd/core/__init__.py
 backEnd/core/migrations
 backEnd/venv
-
 frontEnd/static/static/admin/css/autocomplete.css
 frontEnd/static/static/admin/css/base.css
 frontEnd/static/static/admin/css/changelists.css
@@ -259,3 +258,4 @@ backEnd/staticfiles/admin/js/vendor/select2/i18n/zh-TW.js
 backEnd/staticfiles/admin/js/vendor/xregexp/LICENSE.txt
 backEnd/staticfiles/admin/js/vendor/xregexp/xregexp.js
 backEnd/staticfiles/admin/js/vendor/xregexp/xregexp.min.js
+frontEnd/static/sharedFiles/

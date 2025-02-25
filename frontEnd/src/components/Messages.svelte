@@ -1,5 +1,5 @@
 <script>
-	import { onMount } from 'svelte';
+	import { onMount, afterUpdate } from 'svelte';
 	import Cookies from 'js-cookie';
 	import { messages, connect, sendMessage } from '../stores/websocket.js';
   	import { writable } from 'svelte/store';
@@ -9,15 +9,16 @@
 	let people = [];
 	let selectedPerson = '';
 	let selectedPersonUsername = '';
-	//let messages = [];
 	let showPeopleList = true;
 	let searchQuery = '';
 	let csrftoken = '';
+	let inputMessage = "";
+	let inputFile = null;
+	let socket;
+	let messagesContainer;
 
 	// Test data
 	let roomName = "testroom";
-	let inputMessage = "";
-	let socket;
 	
 	onMount(async () => {
 		await checkLogin();
@@ -28,9 +29,20 @@
 			selectPerson(openedChat);
 		}
 		socket = connect(roomName);
+		retrieveMessages();
 		loading = false;
 	});
+
+	afterUpdate(() => {
+        scrollToBottom(); // Scroll to bottom after each update
+    });
 	
+	function scrollToBottom() {
+        if (messagesContainer) {
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+    }
+
 	async function checkLogin() {
 		const response = await fetch('http://chatservice.local/api/checkLogin', {
 			method: 'GET',
@@ -41,7 +53,7 @@
 			userDetails = await response.json();
 		} else {
 			console.log('Failed to get user details');
-			window.href.location = 'http://chatservice.local/login';
+			window.location.href = 'http://chatservice.local/login';
 		}
 	}
 	
@@ -84,14 +96,82 @@
 		let tmp = people.filter(p => p.username === person);
 		selectedPerson = tmp[0].name + ' ' + tmp[0].surname;
 		selectedPersonUsername = person;
+		retrieveMessages();
 		// Load messages for the selected person
 	};
 
 	function handleSend() {
-		if (inputMessage.trim()) {
+		if (inputMessage.trim() || inputFile) {
+			const newMessage = {
+				sender: userDetails.user.username,
+				receiver: selectedPersonUsername,
+				file: inputFile ? inputFile.name : null,
+				message: inputMessage,
+				timestamp: new Date().toISOString()
+			};
+
+			if (inputFile) {
+				const reader = new FileReader();
+				reader.onload = () => {
+					const fileData = {
+						name: inputFile.name,
+						content: reader.result.split(',')[1]
+					};
+					console.log(fileData);
+					console.log(inputFile.name);
+					sendMessage(inputMessage, userDetails.user.username, selectedPersonUsername, fileData);
+					// messages.update(msgs => [...msgs, newMessage]);
+					inputMessage = "";
+					// console.log(inputFile);
+					inputFile.value = '';
+					// resetFileInput();
+				};
+				reader.readAsDataURL(inputFile);
+			} else {
 			sendMessage(inputMessage, userDetails.user.username, selectedPersonUsername);
+			// messages.update(msgs => [...msgs, newMessage]);
 			inputMessage = "";
+			}
 		}
+	}
+
+	function resetFileInput() {
+        const newInputFile = document.createElement('input');
+        newInputFile.type = 'file';
+        newInputFile.className = 'hidden';
+        newInputFile.onchange = (e) => { inputFile = e.target.files[0]; };
+        inputFile.replaceWith(newInputFile);
+        inputFile = newInputFile;
+    }
+
+	function selectFileForSend() {
+		let inputElement = document.getElementById('fileInput');
+		inputElement.click();
+	}
+
+	async function retrieveMessages() {
+		if (selectedPersonUsername != ''){
+			const response = await fetch('http://chatservice.local/api/getMessages', {
+				method: 'POST',
+				credentials: 'include',
+				headers: {
+					'Content-Type': 'application/json',
+					'X-CSRFToken': csrftoken
+				},
+				body: JSON.stringify({
+					'sender': userDetails.user.username,
+					'receiver': selectedPersonUsername
+				})
+			});
+			const data = await response.json();
+			console.log(data);
+			if (data.status != 'error') {
+				messages.set(data);
+			} else {
+				alert('Failed to get messages');
+			}
+		}
+		
 	}
 	
 	const togglePeopleList = () => {
@@ -177,7 +257,7 @@
 							opacity="0.3"
 						/><path
 							fill="#2793fd"
-							d="M9 12c1.93 0 3.5-1.57 3.5-3.5S10.93 5 9 5S5.5 6.57 5.5 8.5S7.07 12 9 12m0-5c.83 0 1.5.67 1.5 1.5S9.83 10 9 10s-1.5-.67-1.5-1.5S8.17 7 9 7m0 6.75c-2.34 0-7 1.17-7 3.5V19h14v-1.75c0-2.33-4.66-3.5-7-3.5M4.34 17c.84-.58 2.87-1.25 4.66-1.25s3.82.67 4.66 1.25zm11.7-3.19c1.16.84 1.96 1.96 1.96 3.44V19h4v-1.75c0-2.02-3.5-3.17-5.96-3.44M15 12c1.93 0 3.5-1.57 3.5-3.5S16.93 5 15 5c-.54 0-1.04.13-1.5.35c.63.89 1 1.98 1 3.15s-.37 2.26-1 3.15c.46.22.96.35 1.5.35"
+							d="M9 12c1.93 0 3.5-1.57 3.5-3.5S10.93 5 9 5S5.5 6.57 5.5 8.5S7.07 12 9 12m0-5c.83 0 1.5.67 1.5 1.5S9.83 10 9 10s-1.5-.67-1.5-1.5S8.17 7 9 7m0 6.75c-2.34 0-7 1.17-7 3.5V19h14v-1.75c0-2.33-4.66-3.5-7-3.5M4.34 17c.84-.58 2.87-1.25 4.66-1.25s3.82.67 4.66 1.21.25s3.82.67 4.66 5zm11.7-3.19c1.16.84 1.96 1.96 1.96 3.44V19h4v-1.75c0-2.02-3.5-3.17-5.96-3.44M15 12c1.93 0 3.5-1.57 3.5-3.5S16.93 5 15 5c-.54 0-1.04.13-1.5.35c.63.89 1 1.98 1 3.15s-.37 2.26-1 3.15c.46.22.96.35 1.5.35"
 						/></svg
 					>
 				</button>
@@ -185,22 +265,44 @@
 			</div>
 
 			<!-- Messages -->
-			<div class="flex-1 overflow-y-auto p-4">
-				{#each messages as message}
-					<div class={message.from === 'Me' ? 'text-right' : 'text-left'}>
-						<p><strong>{message.from}:</strong> {message.text}</p>
+			<div class="flex-1 overflow-y-auto p-4" bind:this={messagesContainer}>
+				{#each $messages as message}
+					<div class='{message.sender == userDetails.user.username ? 'text-right' : 'text-left'}'>
+						<span>{message.message}</span>
+						{#if message.file}
+							<div class='{message.sender == userDetails.user.username ? 'text-right' : 'text-left'}'>
+								<a href="sharedFiles/{message.file}" download={message.file} target="_blank">
+									<svg class="inline" xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24"><g fill="none" stroke="#5498ee" stroke-linejoin="round" stroke-width="1"><path stroke-linecap="round" d="M7 21a2 2 0 0 1-2-2V3h9l5 5v11a2 2 0 0 1-2 2z"/><path d="M13 3v6h6"/></g></svg>
+									{message.file}
+								</a>
+							</div>
+						{/if}
 					</div>
 				{/each}
 			</div>
-			<div class="bg-gray-100 p-4">
+
+			<!-- Input message for send -->
+			<div class="bg-gray-100 p-4 flex ">
 				<input
 					type="text"
 					placeholder="Type a message..."
-					class="w-full rounded border border-gray-300 p-2"
+					class="w-full rounded border border-gray-300 p-2 mr-1.5"
 					bind:value={inputMessage}
 					on:keydown={(e) => e.key === 'Enter' && handleSend()}
 				/>
-				<button on:click={handleSend} class="bg-blue-500 text-white p-2 rounded">
+				<input 
+					type="file" 
+					class=""
+					bind:this={inputFile}
+					on:change={(e) => {inputFile = e.target.files[0]}}
+					id="fileInput"
+				/>
+				<button aria-label="Attach File" on:click={selectFileForSend} class="hover:cursor-pointer">
+					<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 20 20">
+						<path fill="#5498ee" d="m4.828 10.485l5.657-5.657a3 3 0 0 1 4.243 4.243L8.01 15.788a1.5 1.5 0 0 1-2.121-2.121l6.01-6.01a.5.5 0 1 0-.707-.708l-6.01 6.01a2.5 2.5 0 0 0 3.535 3.536l6.718-6.717A4 4 0 1 0 9.778 4.12L4.12 9.778a.5.5 0 0 0 .707.707" stroke-width="0.2" stroke="#5498ee"/>
+					</svg>
+				</button>
+				<button on:click={handleSend} class="bg-blue-500 text-white px-4 rounded ml-1.5 ">
 					Send
 				</button>
 			</div>

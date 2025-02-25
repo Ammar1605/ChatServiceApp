@@ -10,7 +10,24 @@ export function connect(roomName) {
 
   socket.onmessage = (event) => {
     const data = JSON.parse(event.data);
-    messages.update(msgs => [...msgs, data.message]);
+    messages.update(msgs => {
+      console.log('Message:');
+      console.log(msgs);
+      console.log('Data:');
+      console.log(data);
+
+      const lastMessage = msgs[msgs.length - 1];
+      if (lastMessage != data) {
+        let newMsg = {
+          message: data.message,
+          file: data.file.name,
+          sender: data.sender,
+          receiver: data.receiver,
+        };
+        return [...msgs, newMsg];
+      }
+      return msgs;
+    });
   };
 
   socket.onclose = () => console.log('WebSocket closed.');
@@ -18,8 +35,12 @@ export function connect(roomName) {
   return socket;
 }
 
-export function sendMessage(message, sender, receiver) {
+export function sendMessage(message, sender, receiver, file=null) {
   if (socket.readyState === WebSocket.OPEN) {
-    socket.send(JSON.stringify({ message, sender, receiver }));
+    const data = { message, sender, receiver };
+    if (file) {
+      data.file = file;
+    }
+    socket.send(JSON.stringify(data));
   }
 }
