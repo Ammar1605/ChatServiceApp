@@ -15,7 +15,7 @@
 	let selectedPersonUsername = '';
 	let searchQuery = '';
 	let inputMessage = "";
-	let inputFile = null;
+	let inputFile = [];
 	let fileSelected = false;
 	let multipleFiles = false;
 
@@ -104,7 +104,7 @@
 
 	function handleSend() {
 		if (inputMessage.trim() || inputFile) {
-			if (inputFile.length > 1 || inputMessage == '') {
+			if ((inputFile.length > 1 && fileSelected) || inputMessage == '') {
 				sendMessage(inputMessage, userDetails.user.username, selectedPersonUsername);
 				for (let i = 0; i < inputFile.length; i++) {
 					const reader = new FileReader();
@@ -170,6 +170,18 @@
 			} else {
 				alert('Failed to get messages');
 			}
+		}
+	}
+
+	function removeSelectedFile(name) {
+		const filesArray = Array.from(inputFile);
+		const updatedFiles = filesArray.filter(file => file.name !== name);
+		if (updatedFiles.length == 0) {
+			fileSelected = false;
+		} else {
+			const dataTransfer = new DataTransfer();
+			updatedFiles.forEach(file => dataTransfer.items.add(file));
+			inputFile = dataTransfer.files;
 		}
 	}
 	
@@ -286,7 +298,7 @@
 					{#each inputFile as iFile}
 						<div class="bg-gray-200 p-2 rounded-md m-2 w-auto inline-block">
 							{iFile.name}
-							<button aria-label="Deselect" on:click={() => {inputFile = null; fileSelected = false;}} class="ml-2">
+							<button aria-label="Deselect" on:click={() => {removeSelectedFile(iFile.name)}} class="ml-2">
 								<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="#5498ee" d="M19 6.41L17.59 5L12 10.59L6.41 5L5 6.41L10.59 12L5 17.59L6.41 19L12 13.41L17.59 19L19 17.59L13.41 12z"/></svg>
 							</button>
 						</div>
@@ -305,7 +317,7 @@
 				/>
 				<input 
 					type="file" 
-					class=""
+					class="hidden"
 					bind:this={inputFile}
 					on:change={(e) => {inputFile = e.target.files; fileSelected = true; multipleFiles = true; console.log(inputFile);}}
 					id="fileInput"
