@@ -4,18 +4,20 @@
 	import { messages, connect, sendMessage } from '../stores/websocket.js';
   	import { writable } from 'svelte/store';
 
-	let userDetails = null;
 	let loading = true;
-	let people = [];
-	let selectedPerson = '';
-	let selectedPersonUsername = '';
-	let showPeopleList = true;
-	let searchQuery = '';
 	let csrftoken = '';
-	let inputMessage = "";
-	let inputFile = null;
 	let socket;
 	let messagesContainer;
+	let userDetails = null;
+	let people = [];
+	let showPeopleList = true;
+	let selectedPerson = '';
+	let selectedPersonUsername = '';
+	let searchQuery = '';
+	let inputMessage = "";
+	let inputFile = null;
+	let fileSelected = false;
+	let multipleFiles = false;
 
 	// Test data
 	let roomName = "testroom";
@@ -102,47 +104,45 @@
 
 	function handleSend() {
 		if (inputMessage.trim() || inputFile) {
-			const newMessage = {
-				sender: userDetails.user.username,
-				receiver: selectedPersonUsername,
-				file: inputFile ? inputFile.name : null,
-				message: inputMessage,
-				timestamp: new Date().toISOString()
-			};
-
-			if (inputFile) {
+			if (inputFile.length > 1 || inputMessage == '') {
+				sendMessage(inputMessage, userDetails.user.username, selectedPersonUsername);
+				for (let i = 0; i < inputFile.length; i++) {
+					const reader = new FileReader();
+					const filesToSend = inputFile;
+                    reader.onload = () => {
+                        const fileData = {
+                            name: filesToSend[i].name,
+                            content: reader.result.split(',')[1]
+                        };
+                        console.log(fileData);
+                        console.log(filesToSend[i].name);
+                        sendMessage(inputMessage, userDetails.user.username, selectedPersonUsername, fileData);
+                    };
+                    reader.readAsDataURL(filesToSend[i]);
+                };
+			} else if (inputFile.length == 1 && inputMessage != '') {
 				const reader = new FileReader();
+				const messageToSend = inputMessage;
+				const filesToSend = inputFile;
 				reader.onload = () => {
 					const fileData = {
-						name: inputFile.name,
+						name: filesToSend[0].name,
 						content: reader.result.split(',')[1]
 					};
 					console.log(fileData);
-					console.log(inputFile.name);
-					sendMessage(inputMessage, userDetails.user.username, selectedPersonUsername, fileData);
-					// messages.update(msgs => [...msgs, newMessage]);
-					inputMessage = "";
-					// console.log(inputFile);
-					inputFile.value = '';
-					// resetFileInput();
+					console.log(filesToSend[0].name);
+					sendMessage(messageToSend, userDetails.user.username, selectedPersonUsername, fileData);
 				};
-				reader.readAsDataURL(inputFile);
+				reader.readAsDataURL(filesToSend[0]);
+				fileSelected = false;
 			} else {
-			sendMessage(inputMessage, userDetails.user.username, selectedPersonUsername);
-			// messages.update(msgs => [...msgs, newMessage]);
-			inputMessage = "";
+				sendMessage(inputMessage, userDetails.user.username, selectedPersonUsername);
 			}
+			inputFile = null;
+			fileSelected = false;
+			inputMessage = "";
 		}
 	}
-
-	function resetFileInput() {
-        const newInputFile = document.createElement('input');
-        newInputFile.type = 'file';
-        newInputFile.className = 'hidden';
-        newInputFile.onchange = (e) => { inputFile = e.target.files[0]; };
-        inputFile.replaceWith(newInputFile);
-        inputFile = newInputFile;
-    }
 
 	function selectFileForSend() {
 		let inputElement = document.getElementById('fileInput');
@@ -171,7 +171,6 @@
 				alert('Failed to get messages');
 			}
 		}
-		
 	}
 	
 	const togglePeopleList = () => {
@@ -281,6 +280,20 @@
 				{/each}
 			</div>
 
+			<!-- Indicator for uploaded files and option for deleting some -->
+			{#if fileSelected}
+				<div class="bg-gray-100 p-4 block">
+					{#each inputFile as iFile}
+						<div class="bg-gray-200 p-2 rounded-md m-2 w-auto inline-block">
+							{iFile.name}
+							<button aria-label="Deselect" on:click={() => {inputFile = null; fileSelected = false;}} class="ml-2">
+								<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="#5498ee" d="M19 6.41L17.59 5L12 10.59L6.41 5L5 6.41L10.59 12L5 17.59L6.41 19L12 13.41L17.59 19L19 17.59L13.41 12z"/></svg>
+							</button>
+						</div>
+					{/each}
+				</div>
+			{/if}
+
 			<!-- Input message for send -->
 			<div class="bg-gray-100 p-4 flex ">
 				<input
@@ -294,8 +307,10 @@
 					type="file" 
 					class=""
 					bind:this={inputFile}
-					on:change={(e) => {inputFile = e.target.files[0]}}
+					on:change={(e) => {inputFile = e.target.files; fileSelected = true; multipleFiles = true; console.log(inputFile);}}
 					id="fileInput"
+					accept='.docx,.doc,.pdf,.txt,.png,.jpg,.jpeg,.gif,.zip,.rar,.7z,.mp4,.mkv,.mov,.webm'
+					multiple
 				/>
 				<button aria-label="Attach File" on:click={selectFileForSend} class="hover:cursor-pointer">
 					<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 20 20">

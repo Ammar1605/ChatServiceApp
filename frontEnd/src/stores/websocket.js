@@ -30,17 +30,26 @@ export function connect(roomName) {
     });
   };
 
-  socket.onclose = () => console.log('WebSocket closed.');
-
-  return socket;
+  socket.onclose = () => {
+    console.log('WebSocket closed.');
+    // try reconnect 5 times with 5 seconds delay if the connection is closed
+    /* for (let i = 0; i < 5; i++) {
+      socket = new WebSocket(`ws://chatservice.local:8000/ws/chat/${roomName}/`);
+      if (socket.readyState === WebSocket.OPEN) {
+        break;
+      }
+      setTimeout(() => {
+        console.log('Reconnecting...');
+      }, 5000);
+    }*/
+  } 
+  return socket; 
 }
 
 export function sendMessage(message, sender, receiver, file=null) {
   if (socket.readyState === WebSocket.OPEN) {
     const data = { message, sender, receiver };
-    if (file) {
-      data.file = file;
-    }
+    data.file = file == null ? '' : file;
     socket.send(JSON.stringify(data));
   }
 }
