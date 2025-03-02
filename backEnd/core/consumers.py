@@ -24,7 +24,9 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
     async def receive(self, text_data):
         from .models import Messages
-        data = json.loads(text_data)
+        data = await self.xor_decrypt(text_data)
+        print('Data received: ', data)
+        data = json.loads(data)
         message = data['message']
         sender = data['sender']
         receiver = data['receiver']
@@ -75,9 +77,45 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 }
             )
 
+    async def xor_encrypt_decrypt(self, data, decrypt=False):
+        xor_key = os.getenv("XOR_KEY", "default-xor-key")
+
+        if not decrypt:
+            # Convert dictionary to JSON string
+            data = json.dumps(data)
+
+        # XOR operation
+        encrypted_data = ''.join(
+            chr(ord(data[i]) ^ ord(xor_key[i % len(xor_key)]))
+            for i in range(len(data))
+        )
+
+        if decrypt:
+            return json.loads(encrypted_data)  # Convert back to dictionary
+
+        # Encode encrypted text in Base64 to ensure safe transmission
+        return base64.b64encode(encrypted_data.encode()).decode()
+
+    async def xor_decrypt(self, encrypted_data):
+        xor_key = os.getenv("XOR_KEY", "default-xor-key")
+
+        # Decode Base64
+        encrypted_data = base64.b64decode(encrypted_data).decode()
+
+        # XOR operation to decrypt
+        decrypted_data = ''.join(
+            chr(ord(encrypted_data[i]) ^ ord(xor_key[i % len(xor_key)]))
+            for i in range(len(encrypted_data))
+        )
+
+        return json.loads(decrypted_data)  # Convert back to dictionary
+
+
     async def chat_message(self, event):
         message = event['message']
         file_data = event['file']
         sender = event['sender']
         receiver = event['receiver']
-        await self.send(text_data=json.dumps({'message':message,'file':file_data,'sender':sender,'receiver':receiver}))
+        message = json.dumps({'message':message,'file':file_data,'sender':sender,'receiver':receiver})
+        message = await self.xor_encrypt_decrypt(message)
+        await self.send(text_data=message)

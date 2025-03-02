@@ -138,7 +138,9 @@
 			} else {
 				sendMessage(inputMessage, userDetails.user.username, selectedPersonUsername);
 			}
-			inputFile = null;
+			for (let i = 0; i < inputFile.length; i++) {
+				inputFile[i].value = '';
+			}
 			fileSelected = false;
 			inputMessage = "";
 		}
@@ -277,6 +279,9 @@
 
 			<!-- Messages -->
 			<div class="flex-1 overflow-y-auto p-4" bind:this={messagesContainer}>
+				<!-- Load more messages -->
+				<!-- <button on:click={retrieveMessages} class="flex mx-auto p-2 rounded-xl bg-blue-500">Load more messages</button> -->
+				
 				{#each $messages as message}
 					<div class='{message.sender == userDetails.user.username ? 'text-right' : 'text-left'}'>
 						<span>{message.message}</span>

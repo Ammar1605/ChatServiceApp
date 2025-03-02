@@ -1,5 +1,7 @@
 import { writable } from 'svelte/store';
 
+const XOR_KEY = import.meta.env.VITE_XOR_KEY || 'default-xor-key';
+
 export const messages = writable([]);
 export let socket;
 
@@ -9,7 +11,8 @@ export function connect(roomName) {
   socket.onopen = () => console.log('WebSocket connection established.');
 
   socket.onmessage = (event) => {
-    const data = JSON.parse(event.data);
+    console.log('Received message:', event.data);
+    const data = JSON.parse(xorDecrypt(event.data));
     messages.update(msgs => {
       console.log('Message:');
       console.log(msgs);
@@ -50,6 +53,31 @@ export function sendMessage(message, sender, receiver, file=null) {
   if (socket.readyState === WebSocket.OPEN) {
     const data = { message, sender, receiver };
     data.file = file == null ? '' : file;
-    socket.send(JSON.stringify(data));
+    socket.send(xorEncryptDecrypt(JSON.stringify(data)));
   }
+}
+
+function xorEncryptDecrypt(data) {
+  let jsonString = JSON.stringify(data);
+  let encrypted = '';
+
+  for (let i = 0; i < jsonString.length; i++) {
+      encrypted += String.fromCharCode(jsonString.charCodeAt(i) ^ XOR_KEY.charCodeAt(i % XOR_KEY.length));
+  }
+
+  // Convert encrypted string to Base64 to make it safe for transmission
+  return btoa(encrypted);
+}
+
+function xorDecrypt(encryptedData) {
+  // Decode Base64 first
+  let decoded = atob(encryptedData);
+  let decrypted = '';
+
+  for (let i = 0; i < decoded.length; i++) {
+      decrypted += String.fromCharCode(decoded.charCodeAt(i) ^ XOR_KEY.charCodeAt(i % XOR_KEY.length));
+  }
+  console.log('Decrypted:', decrypted);
+  // Convert back to JSON object
+  return JSON.parse(decrypted);
 }

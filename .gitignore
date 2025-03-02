@@ -259,3 +259,4 @@ backEnd/staticfiles/admin/js/vendor/xregexp/LICENSE.txt
 backEnd/staticfiles/admin/js/vendor/xregexp/xregexp.js
 backEnd/staticfiles/admin/js/vendor/xregexp/xregexp.min.js
 frontEnd/static/sharedFiles/
+backEnd/config/.env
