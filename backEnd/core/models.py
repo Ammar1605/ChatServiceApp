@@ -9,7 +9,7 @@ class ChatRoom(models.Model):
     name = models.CharField(max_length=100, unique=True)
     created_at = models.DateTimeField(auto_now_add=True)
     # Optionally, add a list of participants if your chat is private or group-based:
-    participants = models.ManyToManyField(settings.AUTH_USER_MODEL, blank=True)
+    participants = models.TextField()
 
     def __str__(self):
         return self.name

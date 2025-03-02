@@ -20,9 +20,10 @@
 	let multipleFiles = false;
 	let loadedMessages = 1;
 	let lastScrolled = 1;
+	let roomName = '';
 
 	// Test data
-	let roomName = "testroom";
+	//let roomName = "testroom";
 	
 	onMount(async () => {
 		await checkLogin();
@@ -30,10 +31,10 @@
 		await getPeopleList();
 		let openedChat = new URLSearchParams(window.location.search).get('person');
 		if (openedChat) {
-			selectPerson(openedChat);
+			await selectPerson(openedChat);
+			socket = connect(roomName);
+			// retrieveMessages();
 		}
-		socket = connect(roomName);
-		retrieveMessages();
 		loading = false;
 	});
 
@@ -99,13 +100,36 @@
 		}
 	}
 
-	const selectPerson = (person) => {
+	const selectPerson = async (person) => {
 		let tmp = people.filter(p => p.username === person);
 		selectedPerson = tmp[0].name + ' ' + tmp[0].surname;
 		selectedPersonUsername = person;
-		retrieveMessages();
+		await getRoomName();
+		await retrieveMessages();
+		socket = connect(roomName);
 		// Load messages for the selected person
 	};
+
+	async function getRoomName() {
+		const response = await fetch('http://chatservice.local/api/getRoomName', {
+			method: 'POST',
+			credentials: 'include',
+			headers: {
+				'Content-Type': 'application/json',
+				'X-CSRFToken': csrftoken
+			},
+			body: JSON.stringify({
+				'sender': userDetails.user.username,
+				'receiver': selectedPersonUsername
+			})
+		});
+		const data = await response.json();
+		if (data.status === 'OK') {
+			roomName = data.room;
+		} else {
+			alert('Failed to get room name');
+		}
+	}
 
 	function handleSend() {
 		if (inputMessage.trim() || inputFile) {
@@ -166,8 +190,7 @@
 					'X-CSRFToken': csrftoken
 				},
 				body: JSON.stringify({
-					'sender': userDetails.user.username,
-					'receiver': selectedPersonUsername,
+					'room': roomName,
 					'page': pageNo == null ? 1 : pageNo
 				})
 			});

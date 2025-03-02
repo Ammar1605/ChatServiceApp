@@ -1,4 +1,4 @@
-import json
+import json, hashlib
 from django.contrib.auth.models import User
 from django.db.models import Q
 from django.http import JsonResponse
@@ -58,12 +58,35 @@ def chat_history(request, room_name):
 
 def getMessages(request):
     try:
-        sender = json.loads(request.body)['sender']
-        receiver = json.loads(request.body)['receiver']
+        """ sender = json.loads(request.body)['sender']
+        receiver = json.loads(request.body)['receiver'] """
+        room_name = json.loads(request.body)['room']
         pager = json.loads(request.body)['page']
         print('pager:', pager)
-        messages = Messages.objects.filter(Q(sender=sender, receiver=receiver) | Q(sender=receiver, receiver=sender)).values('sender', 'receiver', 'message', 'file', 'timestamp').order_by('-timestamp')
-        messages = messages[:(50*pager)][::-1]
-        return JsonResponse(list(messages), safe=False)
+        messages = Messages.objects.filter(room__name=room_name)
+        if messages:
+            messages = messages.values('sender', 'receiver', 'message', 'file', 'timestamp').order_by('-timestamp')
+            messages = messages[:(50*pager)][::-1]
+            return JsonResponse(list(messages), safe=False)
+        else:
+            return JsonResponse([], safe=False)
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+    
+def getRoomName(request):
+    try:
+        sender = json.loads(request.body)['sender']
+        receiver = json.loads(request.body)['receiver']
+        # room = ChatRoom.objects.filter(participants__username=sender).filter(participants__username=receiver)
+        # search for a room that has both sender and receiver
+        room = ChatRoom.objects.filter(participants__contains=sender).filter(participants__contains=receiver)
+        print('sender:', sender)
+        print('receiver:', receiver)
+        print('room:', room)
+        if room.exists():
+            return JsonResponse({'status': 'OK', 'room': room[0].name})
+        else:
+            room_name = hashlib.md5(f'{sender}_{receiver}'.encode()).hexdigest()
+            return JsonResponse({'status': 'OK', 'room': room_name})
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
