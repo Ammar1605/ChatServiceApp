@@ -12,6 +12,15 @@
 </html>
 
 <script>
+	window.onload = () => {
+		if ('Notification' in window) {
+			Notification.requestPermission().then((permission) => {
+				if (permission === 'granted') {
+					console.log('Notification permission granted');
+				}
+			});
+		}
+	};
 	/* window.WebSocket = function() {
 		console.warn('WebSocket connection attempted but prevented');
 		return {

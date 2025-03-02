@@ -13,6 +13,7 @@ export function connect(roomName) {
   socket.onmessage = (event) => {
     console.log('Received message:', event.data);
     const data = JSON.parse(xorDecrypt(event.data));
+    showNotification(data.sender, data.message);
     messages.update(msgs => {
       console.log('Message:');
       console.log(msgs);
@@ -80,4 +81,20 @@ function xorDecrypt(encryptedData) {
   console.log('Decrypted:', decrypted);
   // Convert back to JSON object
   return JSON.parse(decrypted);
+}
+
+function showNotification(sender, message) {
+  if (Notification.permission === "granted") {
+    new Notification(`New message from ${sender}`, {
+      body: message,
+      icon: "/favicon.png", // Replace with your app icon
+    });
+  } else if (Notification.permission !== "denied") {
+    Notification.requestPermission().then((permission) => {
+      if (permission === "granted") {
+        showNotification(sender, message);
+      }
+    });
+  }
+
 }
