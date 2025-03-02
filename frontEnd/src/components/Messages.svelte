@@ -18,6 +18,8 @@
 	let inputFile = [];
 	let fileSelected = false;
 	let multipleFiles = false;
+	let loadedMessages = 1;
+	let lastScrolled = 1;
 
 	// Test data
 	let roomName = "testroom";
@@ -36,7 +38,10 @@
 	});
 
 	afterUpdate(() => {
-        scrollToBottom(); // Scroll to bottom after each update
+		if (loadedMessages == lastScrolled) {
+			scrollToBottom(); // Scroll to bottom after each update
+			lastScrolled = loadedMessages;
+		}
     });
 	
 	function scrollToBottom() {
@@ -151,7 +156,7 @@
 		inputElement.click();
 	}
 
-	async function retrieveMessages() {
+	async function retrieveMessages(pageNo=null) {
 		if (selectedPersonUsername != ''){
 			const response = await fetch('http://chatservice.local/api/getMessages', {
 				method: 'POST',
@@ -162,7 +167,8 @@
 				},
 				body: JSON.stringify({
 					'sender': userDetails.user.username,
-					'receiver': selectedPersonUsername
+					'receiver': selectedPersonUsername,
+					'page': pageNo == null ? 1 : pageNo
 				})
 			});
 			const data = await response.json();
@@ -280,7 +286,7 @@
 			<!-- Messages -->
 			<div class="flex-1 overflow-y-auto p-4" bind:this={messagesContainer}>
 				<!-- Load more messages -->
-				<!-- <button on:click={retrieveMessages} class="flex mx-auto p-2 rounded-xl bg-blue-500">Load more messages</button> -->
+				<button on:click={() => {retrieveMessages(++loadedMessages)}} class="flex mx-auto p-2 rounded-xl bg-blue-500">Load more messages</button>
 				
 				{#each $messages as message}
 					<div class='{message.sender == userDetails.user.username ? 'text-right' : 'text-left'}'>

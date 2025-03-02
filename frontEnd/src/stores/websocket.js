@@ -11,7 +11,6 @@ export function connect(roomName) {
   socket.onopen = () => console.log('WebSocket connection established.');
 
   socket.onmessage = (event) => {
-    console.log('Received message:', event.data);
     const data = JSON.parse(xorDecrypt(event.data));
     showNotification(data.sender, data.message);
     messages.update(msgs => {

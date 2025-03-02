@@ -60,8 +60,10 @@ def getMessages(request):
     try:
         sender = json.loads(request.body)['sender']
         receiver = json.loads(request.body)['receiver']
+        pager = json.loads(request.body)['page']
+        print('pager:', pager)
         messages = Messages.objects.filter(Q(sender=sender, receiver=receiver) | Q(sender=receiver, receiver=sender)).values('sender', 'receiver', 'message', 'file', 'timestamp').order_by('-timestamp')
-        messages = messages[:50][::-1]
+        messages = messages[:(50*pager)][::-1]
         return JsonResponse(list(messages), safe=False)
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
