@@ -8,7 +8,6 @@ def getPeopleList(request):
     try:
         current_user = json.loads(request.body)['sender']
         partners = ChatRoom.objects.filter(participants__contains=current_user).values_list('participants', flat=True)
-        print(partners)
         people = []
         for partner in partners:
             partner = ast.literal_eval(partner)
@@ -41,7 +40,6 @@ def getMessages(request):
         receiver = json.loads(request.body)['receiver'] """
         room_name = json.loads(request.body)['room']
         pager = json.loads(request.body)['page']
-        print('pager:', pager)
         messages = Messages.objects.filter(room__name=room_name)
         if messages:
             messages = messages.values('sender', 'receiver', 'message', 'file', 'timestamp').order_by('-timestamp')
@@ -59,9 +57,7 @@ def getRoomName(request):
         # room = ChatRoom.objects.filter(participants__username=sender).filter(participants__username=receiver)
         # search for a room that has both sender and receiver
         room = ChatRoom.objects.filter(participants__contains=sender).filter(participants__contains=receiver)
-        print('sender:', sender)
-        print('receiver:', receiver)
-        print('room:', room)
+
         if room.exists():
             return JsonResponse({'status': 'OK', 'room': room[0].name})
         else:
@@ -77,7 +73,6 @@ def searchPeople(request):
         users = User.objects.filter(Q(username__icontains=search) | Q(first_name__icontains=search) | Q(last_name__icontains=search))
         people = []
         for person in users:
-            print('person:', person)
             people.append({
                 'username': person.username,
                 'email': person.email,

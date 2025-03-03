@@ -7,6 +7,7 @@
   let email = '';
   let password = '';
   let csrftoken = '';
+  let errorMessage = '';
 
   onMount(async () => {
     if (!Cookies.get('csrftoken')) {
@@ -35,12 +36,11 @@
 
     const result = await response.json();
     if (result.status == 'OK') {
-      console.log('Login successful');
       window.location.href = 'http://chatservice.local/messages';
     } else if (result.status_code == 401) {
-      console.log('Login failed - invalid credentials');
+      errorMessage = 'Login failed - invalid credentials';
     } else {
-      console.log('Login failed - unknown error');
+      errorMessage = 'Login failed - unknown error';
     }
   };
 
@@ -64,7 +64,6 @@
     for (let i = 0; i < decoded.length; i++) {
         decrypted += String.fromCharCode(decoded.charCodeAt(i) ^ XOR_KEY.charCodeAt(i % XOR_KEY.length));
     }
-    console.log('Decrypted:', decrypted);
     // Convert back to JSON object
     return JSON.parse(decrypted);
   }
@@ -73,6 +72,12 @@
 <div class="flex items-center justify-center min-h-screen bg-gray-100">
   <div class="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
     <h2 class="text-2xl font-bold mb-4">Login</h2>
+    {#if errorMessage}
+      <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
+        <strong class="font-bold">Error!</strong>
+        <span class="block sm:inline">{errorMessage}</span>
+      </div>
+    {/if}
     <form on:submit|preventDefault={handleLogin}>
       <div>
         <label for="email" class="block text-sm font-medium text-gray-700">Email</label>

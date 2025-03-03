@@ -16,7 +16,6 @@ def userLogin(request):
         username = User.objects.get(email=email).username
         password = data['password']
         user = authenticate(request, username=username, password=password)
-        print(user)
         if user is not None:
             login(request, user)
             LoginHistory.objects.create(

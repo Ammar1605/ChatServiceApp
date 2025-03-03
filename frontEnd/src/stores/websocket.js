@@ -14,10 +14,6 @@ export function connect(roomName) {
     const data = JSON.parse(xorDecrypt(event.data));
     showNotification(data.sender, data.message);
     messages.update(msgs => {
-      console.log('Message:');
-      console.log(msgs);
-      console.log('Data:');
-      console.log(data);
 
       const lastMessage = msgs[msgs.length - 1];
       if (lastMessage != data) {
@@ -77,7 +73,6 @@ function xorDecrypt(encryptedData) {
   for (let i = 0; i < decoded.length; i++) {
       decrypted += String.fromCharCode(decoded.charCodeAt(i) ^ XOR_KEY.charCodeAt(i % XOR_KEY.length));
   }
-  console.log('Decrypted:', decrypted);
   // Convert back to JSON object
   return JSON.parse(decrypted);
 }

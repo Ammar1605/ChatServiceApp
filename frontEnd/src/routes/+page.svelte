@@ -12,15 +12,7 @@
             window.location.href = 'http://chatservice.local/login';
         } 
     });
-
-    async function getCSRFToken() {
-        const response = await fetch('api/getcsrf', {
-            method: 'GET',
-            credentials: 'include',
-        });
-        const data = await response.json();
-    }
-
+    
     async function checkLogin() {
 		const response = await fetch('http://chatservice.local/api/checkLogin', {
 			method: 'GET',

@@ -22,9 +22,6 @@
 	let loadedMessages = 1;
 	let lastScrolled = 1;
 	let roomName = '';
-
-	// Test data
-	//let roomName = "testroom";
 	
 	onMount(async () => {
 		await checkLogin();
@@ -33,8 +30,6 @@
 		let openedChat = new URLSearchParams(window.location.search).get('person');
 		if (openedChat) {
 			await selectPerson(openedChat);
-			socket = connect(roomName);
-			// retrieveMessages();
 		}
 		loading = false;
 	});
@@ -61,7 +56,6 @@
 		if (response.ok) {
 			userDetails = await response.json();
 		} else {
-			console.log('Failed to get user details');
 			window.location.href = 'http://chatservice.local/login';
 		}
 	}
@@ -108,7 +102,6 @@
 		await getRoomName();
 		await retrieveMessages();
 		socket = connect(roomName);
-		// Load messages for the selected person
 	};
 
 	async function getRoomName() {
