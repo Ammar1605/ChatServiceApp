@@ -1,43 +1,22 @@
-import json, hashlib
+import json, hashlib, ast
 from django.contrib.auth.models import User
 from django.db.models import Q
 from django.http import JsonResponse
 from .models import Messages, ChatRoom
 
-""" def getPeopleList(request):
-    try:
-        print('Here')
-        sender = json.loads(request.body)['sender']
-        print('sender:', sender)
-        peopleList = Messages.objects.filter(sender=sender).values('receiver').distinct()
-        print('peopleList:', peopleList)
-        people = []
-        for person in peopleList:
-            print('person:', person)
-            tmp = User.objects.get(username=person['receiver'])
-            people.append({
-                'username': tmp.username,
-                'email': tmp.email,
-                'name': tmp.first_name,
-                'surname': tmp.last_name
-            })
-        print(people)
-
-        return JsonResponse({'status': 'OK', 'peopleList': list(people)})
-    except Exception as e:
-        return JsonResponse({'status': 'error', 'message': str(e)}, status=500) """
-
 def getPeopleList(request):
     try:
         current_user = json.loads(request.body)['sender']
-        qs_sender = Messages.objects.filter(sender=current_user).exclude(receiver='').values_list('receiver', flat=True).distinct()
-        qs_receiver = Messages.objects.filter(receiver=current_user).exclude(sender='').values_list('sender', flat=True).distinct()
-        partners = list(qs_sender.union(qs_receiver))
+        partners = ChatRoom.objects.filter(participants__contains=current_user).values_list('participants', flat=True)
         print(partners)
         people = []
-        for person in partners:
-            print('person:', person)
-            tmp = User.objects.get(username=person)
+        for partner in partners:
+            partner = ast.literal_eval(partner)
+            if partner[0] == current_user:
+                partner = partner[1]
+            else:
+                partner = partner[0]
+            tmp = User.objects.get(username=partner)
             people.append({
                 'username': tmp.username,
                 'email': tmp.email,
@@ -87,6 +66,24 @@ def getRoomName(request):
             return JsonResponse({'status': 'OK', 'room': room[0].name})
         else:
             room_name = hashlib.md5(f'{sender}_{receiver}'.encode()).hexdigest()
-            return JsonResponse({'status': 'OK', 'room': room_name})
+            chat_room, created = ChatRoom.objects.get_or_create(name=room_name, participants=f"['{sender}', '{receiver}']")
+            return JsonResponse({'status': 'OK', 'room': room_name, 'existing': True if created or chat_room else False})
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+    
+def searchPeople(request):
+    try:
+        search = json.loads(request.body)['query']
+        users = User.objects.filter(Q(username__icontains=search) | Q(first_name__icontains=search) | Q(last_name__icontains=search))
+        people = []
+        for person in users:
+            print('person:', person)
+            people.append({
+                'username': person.username,
+                'email': person.email,
+                'name': person.first_name,
+                'surname': person.last_name
+            })
+        return JsonResponse({'status': 'OK', 'people': list(people)})
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)

@@ -8,6 +8,7 @@ urlpatterns = [
     path('checkLogin', apiFunctions.getUserDetails, name='Check Login'),
     path('logout', apiFunctions.userLogout, name='Logout'),
     path('getPeopleList', chatFunctions.getPeopleList, name='Get People List'),
+    path('searchPeople', chatFunctions.searchPeople, name='Search People'),
     path('getMessages', chatFunctions.getMessages, name='Get Messages'),
     path('getRoomName', chatFunctions.getRoomName, name='Get Room Name'),
 ]

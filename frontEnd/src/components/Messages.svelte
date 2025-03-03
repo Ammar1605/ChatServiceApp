@@ -14,6 +14,7 @@
 	let selectedPerson = '';
 	let selectedPersonUsername = '';
 	let searchQuery = '';
+	let searchResults = [];
 	let inputMessage = "";
 	let inputFile = [];
 	let fileSelected = false;
@@ -100,8 +101,8 @@
 		}
 	}
 
-	const selectPerson = async (person) => {
-		let tmp = people.filter(p => p.username === person);
+	const selectPerson = async (person, searchResult) => {
+		let tmp = !searchResult ? people.filter(p => p.username === person) : searchResults.filter(p => p.username === person);
 		selectedPerson = tmp[0].name + ' ' + tmp[0].surname;
 		selectedPersonUsername = person;
 		await getRoomName();
@@ -220,8 +221,26 @@
 		showPeopleList = !showPeopleList;
 	};
 	
-	function searchFor() {
-		console.log(searchQuery);
+	async function searchFor() {
+		try {
+			const response = await fetch('http://chatservice.local/api/searchPeople', {
+				method: 'POST',
+				credentials: 'include',
+				headers: {
+					'Content-Type': 'application/json',
+					'X-CSRFToken': csrftoken
+				},
+				body: JSON.stringify({'query': searchQuery})
+			});
+			const data = await response.json();
+			if (data.status === 'OK') {
+				searchResults = data.people;
+			} else {
+				alert('Failed to search for people');
+			}
+		} catch (error) {
+			console.log(error);
+		}
 	}
 </script>
 
@@ -256,10 +275,25 @@
 						</div>
 					</form>
 				</div>
+
+				<!-- Searched people -->
+				<ul>
+					{#each searchResults as person}
+						<li class="cursor-pointer">
+							<a href="?person={person.username}" on:click={() => selectPerson(person.username, true)}>
+								<div class="border-1 m-2 rounded-md p-2">
+									{person.name} {person.surname}
+								</div>
+							</a>
+						</li>
+					{/each}
+				</ul>
+
+				<!-- Already existing chats -->
 				<ul>
 					{#each people as person}
 						<li class="cursor-pointer">
-							<a href="?person={person.username}" on:click={() => selectPerson(person.username)}>
+							<a href="?person={person.username}" on:click={() => selectPerson(person.username, false)}>
 								<div class="border-1 m-2 rounded-md p-2">
 									{person.name} {person.surname}
 								</div>
