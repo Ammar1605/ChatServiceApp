@@ -1,6 +1,8 @@
 <script>
   import { onMount } from 'svelte';
   import Cookies from 'js-cookie';
+  
+  const XOR_KEY = import.meta.env.VITE_XOR_KEY || 'default-xor-key';
 
   let email = '';
   let password = '';
@@ -28,7 +30,7 @@
         'Content-Type': 'application/json',
         'X-CSRFToken': csrftoken
       },
-      body: JSON.stringify({ email, password })
+      body: xorEncryptDecrypt(JSON.stringify({ email, password }))
     });
 
     const result = await response.json();
@@ -40,47 +42,32 @@
     } else {
       console.log('Login failed - unknown error');
     }
-    /* event.preventDefault();
-		loginData.email = email;
-		loginData.password = CryptoJS.SHA256(password).toString();
-
-		loginData.sessionID = localStorage.getItem('sessionid');
-
-		try {
-			const response = await fetch('api/login', {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json',
-					'X-CSRFToken': csrftoken
-				},
-				body: JSON.stringify(loginData)
-			});
-
-			const result = await response.json();
-
-			if (result.status == 'prijavljen') {
-				let uporabnik = {
-					username: result.username,
-					brezplacnoPolnjenje: result.brezplacnoPolnjenje,
-					role: result.role,
-					podjetje: result.podjetje,
-          			enaslov: loginData.enaslov
-				};
-				logged = true;
-				loggingIn(uporabnik);
-			} else if (result.status == 'Prijavljen drugje') {
-				alert('Napaka! Ste že prijavljeni na drugi napravi ali drugem brskalniku');
-			} else if (result.status == 'Napaka') {
-				alert('Napaka!! Sporočilo: ', result.podatki, ' Boste preusmerjeni nazaj.');
-				window.location.href = 'http://xpandlink.com/charger?chargerID=' + stringify(chargerID);
-			} else {
-				logged = false;
-				alert(result.status);
-			}
-		} catch (error) {
-			console.log(error);
-		} */
   };
+
+  function xorEncryptDecrypt(data) {
+    let jsonString = JSON.stringify(data);
+    let encrypted = '';
+
+    for (let i = 0; i < jsonString.length; i++) {
+        encrypted += String.fromCharCode(jsonString.charCodeAt(i) ^ XOR_KEY.charCodeAt(i % XOR_KEY.length));
+    }
+
+    // Convert encrypted string to Base64 to make it safe for transmission
+    return btoa(encrypted);
+  }
+
+  function xorDecrypt(encryptedData) {
+    // Decode Base64 first
+    let decoded = atob(encryptedData);
+    let decrypted = '';
+
+    for (let i = 0; i < decoded.length; i++) {
+        decrypted += String.fromCharCode(decoded.charCodeAt(i) ^ XOR_KEY.charCodeAt(i % XOR_KEY.length));
+    }
+    console.log('Decrypted:', decrypted);
+    // Convert back to JSON object
+    return JSON.parse(decrypted);
+  }
 </script>
 
 <div class="flex items-center justify-center min-h-screen bg-gray-100">

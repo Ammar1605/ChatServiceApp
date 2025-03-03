@@ -26,3 +26,10 @@ class Messages(models.Model):
     is_sent = models.BooleanField(default=False)
     is_received = models.BooleanField(default=False)
     is_delivered = models.BooleanField(default=False)
+
+class LoginHistory(models.Model):
+    timestamp = models.DateTimeField(auto_now_add=True)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    ip_address = models.GenericIPAddressField()
+    user_agent = models.CharField(max_length=255)
+    recordType = models.CharField(max_length=255, default='login')

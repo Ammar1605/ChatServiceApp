@@ -342,8 +342,12 @@
 
 			<!-- Messages -->
 			<div class="flex-1 overflow-y-auto p-4" bind:this={messagesContainer}>
-				<!-- Load more messages -->
-				<button on:click={() => {retrieveMessages(++loadedMessages)}} class="flex mx-auto p-2 rounded-xl bg-blue-500">Load more messages</button>
+				<!-- Load more messages if there are more messages than fit to a screen -->
+				{#if $messages.length > 40}
+					<div class="text-center">
+						<button on:click={() => {retrieveMessages(++loadedMessages)}} class="flex mx-auto p-2 rounded-xl bg-blue-500">Load more messages</button>
+					</div>
+				{/if}
 				
 				{#each $messages as message}
 					<div class='{message.sender == userDetails.user.username ? 'text-right' : 'text-left'}'>
